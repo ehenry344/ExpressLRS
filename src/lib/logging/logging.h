@@ -27,9 +27,9 @@
 
 extern Stream *BackpackOrLogStrm;
 #if defined(TARGET_TX) && defined(PLATFORM_ESP32_S3)
-#define LOGGING_UART (Serial)
+  #define LOGGING_UART (Serial)
 #else
-#define LOGGING_UART (*BackpackOrLogStrm)
+  #define LOGGING_UART (*BackpackOrLogStrm)
 #endif
 
 // #define LOG_USE_PROGMEM

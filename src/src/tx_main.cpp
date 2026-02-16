@@ -15,18 +15,19 @@
 #include "devWIFI.h"
 #include "devButton.h"
 #include "devVTX.h"
+
 #if defined(PLATFORM_ESP32)
-#include "devScreen.h"
-#include "devBLE.h"
-#include "devGsensor.h"
-#include "devThermal.h"
-#include "devPDET.h"
-#include "devBackpack.h"
+  #include "devScreen.h"
+  #include "devBLE.h"
+  #include "devGsensor.h"
+  #include "devThermal.h"
+  #include "devPDET.h"
+  #include "devBackpack.h"
 #else
-// Fake functions for 8285
-void checkBackpackUpdate() {}
-void sendCRSFTelemetryToBackpack(uint8_t *) {}
-void sendMAVLinkTelemetryToBackpack(uint8_t *) {}
+  // Fake functions for 8285
+  void checkBackpackUpdate() {}
+  void sendCRSFTelemetryToBackpack(uint8_t *) {}
+  void sendMAVLinkTelemetryToBackpack(uint8_t *) {}
 #endif
 
 #include "CRSFParser.h"
@@ -37,7 +38,7 @@ void sendMAVLinkTelemetryToBackpack(uint8_t *) {}
 #include "TXUSBConnector.h"
 
 #if defined(PLATFORM_ESP8266)
-#include <user_interface.h>
+  #include <user_interface.h>
 #endif
 
 /// define some libs to use ///
@@ -74,6 +75,10 @@ static enum { stbIdle, stbRequested, stbBoosting } syncTelemBoostState = stbIdle
 
 static uint32_t LastTLMpacketRecv_Ms = 0;
 static uint32_t LinkStatsLastReported_Ms = 0;
+
+// logging variables
+static uint32_t LastHeartbeatLog_Ms = 0;
+
 static bool commitInProgress = false;
 
 LQCALC<100> LqTQly;
@@ -1435,27 +1440,22 @@ void setup()
     #if defined(RADIO_SX127X)
     //Radio.currSyncWord = UID[3];
     #endif
+
     bool init_success;
     #if defined(USE_BLE_JOYSTICK)
-    init_success = true; // No radio is attached with a joystick only module.  So we are going to fake success so that crsf, hwTimer etc are initiated below.
+      init_success = true; // No radio is attached with a joystick only module.  So we are going to fake success so that crsf, hwTimer etc are initiated below.
     #else
-    if (GPIO_PIN_SCK != UNDEF_PIN)
-    {
-      init_success = Radio.Begin(FHSSgetMinimumFreq(), FHSSgetMaximumFreq());
-    }
-    else
-    {
-      // Assume BLE Joystick mode if no radio SCK pin
-      init_success = true;
-    }
+      if (GPIO_PIN_SCK != UNDEF_PIN) {
+        init_success = Radio.Begin(FHSSgetMinimumFreq(), FHSSgetMaximumFreq());
+      } else {
+        // Assume BLE Joystick mode if no radio SCK pin
+        init_success = true;
+      }
     #endif
 
-    if (!init_success)
-    {
+    if (!init_success) {
       setConnectionState(radioFailed);
-    }
-    else
-    {
+    } else {
       DataDlReceiver.SetDataToReceive(CRSFinBuffer, sizeof(CRSFinBuffer));
 
       POWERMGNT::init();
@@ -1490,19 +1490,18 @@ void setup()
   }
 }
 
+// not trying to transmit anything or maintain connections
+// goal is to simply receive packets and log them to the output
+// therefore I do not care about the connection or anything like that
+
+
 void loop()
 {
   uint32_t now = millis();
 
   HandleUARTout(); // Only used for non-CRSF output
 
-  #if defined(USE_BLE_JOYSTICK)
-  if (connectionState != bleJoystick && connectionState != noCrossfire) // Wait until the correct crsf baud has been found
-  {
-      connectionState = bleJoystick;
-  }
-  #endif
-
+  // removed BLE joystick nonsense
   if (connectionState < MODE_STATES)
   {
     UpdateConnectDisconnectStatus();

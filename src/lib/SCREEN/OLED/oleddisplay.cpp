@@ -105,7 +105,7 @@ void OLEDDisplay::displayIdleScreen(uint8_t changed, uint8_t rate_index, uint8_t
     else if (connectionState == noCrossfire)
     {
         drawCentered(15, "NO");
-        drawCentered(32, "HANDSET");
+        drawCentered(32, "CRSF DETECTED");
     }
     else if (OPT_HAS_OLED_SPI_SMALL)
     {

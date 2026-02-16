@@ -172,8 +172,13 @@ if '-DRADIO_SX127X=1' in build_flags or '-DRADIO_LR1121=1' in build_flags:
         json_flags['domain'] = 6
     if fnmatch.filter(build_flags, '*-DRegulatory_Domain_US_433_WIDE'):
         json_flags['domain'] = 7
+    if fnmatch.filter(build_flags, "*-DRegulatory_Domain_FCC_915_SINGLE"):
+        json_flags['domain'] = 8
 else:
-    json_flags['domain'] = 0
+    if fnmatch.filter(build_flags, "*-DRegulatory_Domain_ISM_2400_SINGLE"):
+        json_flags['domain'] = 1
+    else:
+        json_flags['domain'] = 0
 
 # Remove ISM_2400 domain flag if not unit test, it is defined per target config
 if fnmatch.filter(build_flags, '*Regulatory_Domain_ISM_2400*') and \

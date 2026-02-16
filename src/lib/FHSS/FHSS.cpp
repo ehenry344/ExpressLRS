@@ -4,48 +4,51 @@
 #include <string.h>
 
 #if defined(RADIO_SX127X) || defined(RADIO_LR1121)
-
-#if defined(RADIO_LR1121)
-#include "LR1121Driver.h"
-#else
-#include "SX127xDriver.h"
-#endif
-
-const fhss_config_t domains[] = {
-    {"AU915",  FREQ_HZ_TO_REG_VAL(915500000), FREQ_HZ_TO_REG_VAL(926900000), 20, 921000000},
-    {"FCC915", FREQ_HZ_TO_REG_VAL(903500000), FREQ_HZ_TO_REG_VAL(926900000), 40, 915000000},
-    {"EU868",  FREQ_HZ_TO_REG_VAL(863275000), FREQ_HZ_TO_REG_VAL(869575000), 13, 868000000},
-    {"IN866",  FREQ_HZ_TO_REG_VAL(865375000), FREQ_HZ_TO_REG_VAL(866950000), 4, 866000000},
-    {"AU433",  FREQ_HZ_TO_REG_VAL(433420000), FREQ_HZ_TO_REG_VAL(434420000), 3, 434000000},
-    {"EU433",  FREQ_HZ_TO_REG_VAL(433100000), FREQ_HZ_TO_REG_VAL(434450000), 3, 434000000},
-    {"US433",  FREQ_HZ_TO_REG_VAL(433250000), FREQ_HZ_TO_REG_VAL(438000000), 8, 434000000},
-    {"US433W",  FREQ_HZ_TO_REG_VAL(423500000), FREQ_HZ_TO_REG_VAL(438000000), 20, 434000000},
-};
-
-#if defined(RADIO_LR1121)
-const fhss_config_t domainsDualBand[] = {
-    {
-    #if defined(Regulatory_Domain_EU_CE_2400)
-        "CE_LBT",
+    #if defined(RADIO_LR1121)
+        #include "LR1121Driver.h"
     #else
-        "ISM2G4",
+        #include "SX127xDriver.h"
     #endif
-    FREQ_HZ_TO_REG_VAL(2400400000), FREQ_HZ_TO_REG_VAL(2479400000), 80, 2440000000}
-};
-#endif
 
+    const fhss_config_t domains[] = {
+        {"AU915",  FREQ_HZ_TO_REG_VAL(915500000), FREQ_HZ_TO_REG_VAL(926900000), 20, 921000000},
+        {"FCC915", FREQ_HZ_TO_REG_VAL(903500000), FREQ_HZ_TO_REG_VAL(926900000), 40, 915000000},
+        {"EU868",  FREQ_HZ_TO_REG_VAL(863275000), FREQ_HZ_TO_REG_VAL(869575000), 13, 868000000},
+        {"IN866",  FREQ_HZ_TO_REG_VAL(865375000), FREQ_HZ_TO_REG_VAL(866950000), 4, 866000000},
+        {"AU433",  FREQ_HZ_TO_REG_VAL(433420000), FREQ_HZ_TO_REG_VAL(434420000), 3, 434000000},
+        {"EU433",  FREQ_HZ_TO_REG_VAL(433100000), FREQ_HZ_TO_REG_VAL(434450000), 3, 434000000},
+        {"US433",  FREQ_HZ_TO_REG_VAL(433250000), FREQ_HZ_TO_REG_VAL(438000000), 8, 434000000},
+        {"US433W",  FREQ_HZ_TO_REG_VAL(423500000), FREQ_HZ_TO_REG_VAL(438000000), 20, 434000000},
+        {"FCC915SF", FREQ_HZ_TO_REG_VAL(915000000), FREQ_HZ_TO_REG_VAL(915000000), 1, 915000000}, // single frequency (used for debugging)
+    };
+
+    #if defined(RADIO_LR1121)
+        const fhss_config_t domainsDualBand[] = {
+            {
+            #if defined(Regulatory_Domain_EU_CE_2400)
+                "CE_LBT",
+            #else
+                "ISM2G4",
+            #endif
+            FREQ_HZ_TO_REG_VAL(2400400000), FREQ_HZ_TO_REG_VAL(2479400000), 80, 2440000000},
+            {"ISM264SF", FREQ_HZ_TO_REG_VAL(2440000000), FREQ_HZ_TO_REG_VAL(2440000000), 1, 2440000000}
+        };
+    #endif
 #elif defined(RADIO_SX128X)
-#include "SX1280Driver.h"
+    #include "SX1280Driver.h"
 
-const fhss_config_t domains[] = {
-    {
-    #if defined(Regulatory_Domain_EU_CE_2400)
-        "CE_LBT",
-    #elif defined(Regulatory_Domain_ISM_2400)
-        "ISM2G4",
-    #endif
-    FREQ_HZ_TO_REG_VAL(2400400000), FREQ_HZ_TO_REG_VAL(2479400000), 80, 2440000000}
-};
+    const fhss_config_t domains[] = {
+        {
+        #if defined(Regulatory_Domain_EU_CE_2400)
+            "CE_LBT",
+        #elif defined(Regulatory_Domain_ISM_2400)
+            "ISM2G4",
+        #endif
+        FREQ_HZ_TO_REG_VAL(2400400000), FREQ_HZ_TO_REG_VAL(2479400000), 80, 2440000000},
+        #if defined(DEBUG_SFREQ)
+        {"ISM264SF", FREQ_HZ_TO_REG_VAL(2440000000), FREQ_HZ_TO_REG_VAL(2440000000), 1, 2440000000}
+        #endif
+    };
 #endif
 
 // Our table of FHSS frequencies. Define a regulatory domain to select the correct set for your location and radio
@@ -80,7 +83,7 @@ uint16_t secondaryBandCount;
 
 void FHSSrandomiseFHSSsequence(const uint32_t seed)
 {
-    FHSSconfig = &domains[firmwareOptions.domain];
+    FHSSconfig = &domains[firmwareOptions.primary_domain];
     sync_channel = FHSSconfig->freq_count / 2;
     freq_spread = (FHSSconfig->freq_stop - FHSSconfig->freq_start) * FREQ_SPREAD_SCALE / (FHSSconfig->freq_count - 1);
     primaryBandCount = (FHSS_SEQUENCE_LEN / FHSSconfig->freq_count) * FHSSconfig->freq_count;
@@ -90,19 +93,19 @@ void FHSSrandomiseFHSSsequence(const uint32_t seed)
 
     FHSSrandomiseFHSSsequenceBuild(seed, FHSSconfig->freq_count, sync_channel, FHSSsequence);
 
-#if defined(RADIO_LR1121)
-    FHSSconfigDualBand = &domainsDualBand[0];
-    sync_channel_DualBand = FHSSconfigDualBand->freq_count / 2;
-    freq_spread_DualBand = (FHSSconfigDualBand->freq_stop - FHSSconfigDualBand->freq_start) * FREQ_SPREAD_SCALE / (FHSSconfigDualBand->freq_count - 1);
-    secondaryBandCount = (FHSS_SEQUENCE_LEN / FHSSconfigDualBand->freq_count) * FHSSconfigDualBand->freq_count;
+    #if defined(RADIO_LR1121)
+        FHSSconfigDualBand = &domainsDualBand[firmwareOptions.secondary_domain];
+        sync_channel_DualBand = FHSSconfigDualBand->freq_count / 2;
+        freq_spread_DualBand = (FHSSconfigDualBand->freq_stop - FHSSconfigDualBand->freq_start) * FREQ_SPREAD_SCALE / (FHSSconfigDualBand->freq_count - 1);
+        secondaryBandCount = (FHSS_SEQUENCE_LEN / FHSSconfigDualBand->freq_count) * FHSSconfigDualBand->freq_count;
 
-    DBGLN("Dual Domain %s, %u channels, sync=%u",
-        FHSSconfigDualBand->domain, FHSSconfigDualBand->freq_count, sync_channel_DualBand);
+        DBGLN("Dual Domain %s, %u channels, sync=%u",
+            FHSSconfigDualBand->domain, FHSSconfigDualBand->freq_count, sync_channel_DualBand);
 
-    FHSSusePrimaryFreqBand = false;
-    FHSSrandomiseFHSSsequenceBuild(seed, FHSSconfigDualBand->freq_count, sync_channel_DualBand, FHSSsequence_DualBand);
-    FHSSusePrimaryFreqBand = true;
-#endif
+        FHSSusePrimaryFreqBand = false;
+        FHSSrandomiseFHSSsequenceBuild(seed, FHSSconfigDualBand->freq_count, sync_channel_DualBand, FHSSsequence_DualBand);
+        FHSSusePrimaryFreqBand = true;
+    #endif
 }
 
 /**
