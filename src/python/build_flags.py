@@ -153,7 +153,8 @@ if '-DRADIO_SX127X=1' in build_flags or '-DRADIO_LR1121=1' in build_flags:
         print_error('Regulatory_Domain 2400 not compatible with RADIO_SX127X/RADIO_LR1121')
 
     # require a domain be set for 900
-    if not fnmatch.filter(build_flags, '*-DRegulatory_Domain*'):
+    if not fnmatch.filter(build_flags, '*-DRegulatory_Domain*') and \
+        not fnmatch.filter(build_flags, "*-DDEBUG_SINGLE_FREQ"):
         print_error('Please define a Regulatory_Domain in user_defines.txt')
 
     if fnmatch.filter(build_flags, '*-DRegulatory_Domain_AU_915'):
@@ -172,13 +173,8 @@ if '-DRADIO_SX127X=1' in build_flags or '-DRADIO_LR1121=1' in build_flags:
         json_flags['domain'] = 6
     if fnmatch.filter(build_flags, '*-DRegulatory_Domain_US_433_WIDE'):
         json_flags['domain'] = 7
-    if fnmatch.filter(build_flags, "*-DRegulatory_Domain_FCC_915_SINGLE"):
-        json_flags['domain'] = 8
 else:
-    if fnmatch.filter(build_flags, "*-DRegulatory_Domain_ISM_2400_SINGLE"):
-        json_flags['domain'] = 1
-    else:
-        json_flags['domain'] = 0
+    json_flags['domain'] = 0
 
 # Remove ISM_2400 domain flag if not unit test, it is defined per target config
 if fnmatch.filter(build_flags, '*Regulatory_Domain_ISM_2400*') and \

@@ -19,34 +19,40 @@
         {"EU433",  FREQ_HZ_TO_REG_VAL(433100000), FREQ_HZ_TO_REG_VAL(434450000), 3, 434000000},
         {"US433",  FREQ_HZ_TO_REG_VAL(433250000), FREQ_HZ_TO_REG_VAL(438000000), 8, 434000000},
         {"US433W",  FREQ_HZ_TO_REG_VAL(423500000), FREQ_HZ_TO_REG_VAL(438000000), 20, 434000000},
-        {"FCC915SF", FREQ_HZ_TO_REG_VAL(915000000), FREQ_HZ_TO_REG_VAL(915000000), 1, 915000000}, // single frequency (used for debugging)
+        #if defined(DEBUG_SINGLE_FREQ)
+            {"FCC915SF", FREQ_HZ_TO_REG_VAL(915000000), FREQ_HZ_TO_REG_VAL(915000000), 1, 915000000},
+        #endif // DEBUG_SINGLE_FREQ
     };
 
     #if defined(RADIO_LR1121)
         const fhss_config_t domainsDualBand[] = {
+            #if !defined(DEBUG_SINGLE_FREQ)
             {
-            #if defined(Regulatory_Domain_EU_CE_2400)
-                "CE_LBT",
+                #if defined(Regulatory_Domain_EU_CE_2400)
+                    "CE_LBT",
+                #else
+                    "ISM2G4",
+                #endif
+                FREQ_HZ_TO_REG_VAL(2400400000), FREQ_HZ_TO_REG_VAL(2479400000), 80, 2440000000},
             #else
-                "ISM2G4",
-            #endif
-            FREQ_HZ_TO_REG_VAL(2400400000), FREQ_HZ_TO_REG_VAL(2479400000), 80, 2440000000},
-            {"ISM264SF", FREQ_HZ_TO_REG_VAL(2440000000), FREQ_HZ_TO_REG_VAL(2440000000), 1, 2440000000}
+                {"ISM264SF", FREQ_HZ_TO_REG_VAL(2440000000), FREQ_HZ_TO_REG_VAL(2440000000), 1, 2440000000}
+            #endif // DEBUG_SINGLE_FREQ
         };
     #endif
 #elif defined(RADIO_SX128X)
     #include "SX1280Driver.h"
 
     const fhss_config_t domains[] = {
-        {
-        #if defined(Regulatory_Domain_EU_CE_2400)
-            "CE_LBT",
-        #elif defined(Regulatory_Domain_ISM_2400)
-            "ISM2G4",
-        #endif
-        FREQ_HZ_TO_REG_VAL(2400400000), FREQ_HZ_TO_REG_VAL(2479400000), 80, 2440000000},
-        #if defined(DEBUG_SFREQ)
-        {"ISM264SF", FREQ_HZ_TO_REG_VAL(2440000000), FREQ_HZ_TO_REG_VAL(2440000000), 1, 2440000000}
+        #if !defined(DEBUG_SINGLE_FREQ)
+            {
+            #if defined(Regulatory_Domain_EU_CE_2400)
+                "CE_LBT",
+            #elif defined(Regulatory_Domain_ISM_2400)
+                "ISM2G4",
+            #endif
+            FREQ_HZ_TO_REG_VAL(2400400000), FREQ_HZ_TO_REG_VAL(2479400000), 80, 2440000000},
+        #else
+            {"ISM264SF", FREQ_HZ_TO_REG_VAL(2440000000), FREQ_HZ_TO_REG_VAL(2440000000), 1, 2440000000}
         #endif
     };
 #endif
@@ -83,7 +89,12 @@ uint16_t secondaryBandCount;
 
 void FHSSrandomiseFHSSsequence(const uint32_t seed)
 {
-    FHSSconfig = &domains[firmwareOptions.primary_domain];
+    #if defined(DEBUG_SINGLE_FREQ)
+        FHSSconfig = &domains[8];
+    #else
+        FHSSconfig = &domains[firmwareOptions.domain];
+    #endif
+
     sync_channel = FHSSconfig->freq_count / 2;
     freq_spread = (FHSSconfig->freq_stop - FHSSconfig->freq_start) * FREQ_SPREAD_SCALE / (FHSSconfig->freq_count - 1);
     primaryBandCount = (FHSS_SEQUENCE_LEN / FHSSconfig->freq_count) * FHSSconfig->freq_count;
@@ -153,6 +164,12 @@ void FHSSrandomiseFHSSsequenceBuild(const uint32_t seed, uint32_t freqCount, uin
             inSequence[offset+rand] = temp;
         }
     }
+
+    #if defined(DEBUG_SINGLE_FREQ)
+        for (uint16_t i = 0; i < FHSSgetSequenceCount(); i++) {
+            DBGLN("FHSS_ARR[%d]: %d", i, inSequence[i]);
+        }
+    #endif
 
     // output FHSS sequence
     // for (uint16_t i=0; i < FHSSgetSequenceCount(); i++)

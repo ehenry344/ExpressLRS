@@ -1,3 +1,2 @@
 -DMY_BINDING_PHRASE="frosty"
--DRegulatory_Domain_FCC_915
 -DAUTO_WIFI_ON_INTERVAL="60"
