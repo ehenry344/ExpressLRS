@@ -20,8 +20,11 @@
 #define FREQ_SPREAD_SCALE 256
 #endif
 
-#define FHSS_SEQUENCE_LEN 256
-
+#if defined(DEBUG_SINGLE_FREQ)
+    #define FHSS_SEQUENCE_LEN 1
+#else
+    #define FHSS_SEQUENCE_LEN 256
+#endif
 typedef struct {
     const char  *domain;
     uint32_t    freq_start;
