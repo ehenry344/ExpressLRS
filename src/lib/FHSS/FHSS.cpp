@@ -105,7 +105,7 @@ void FHSSrandomiseFHSSsequence(const uint32_t seed)
     FHSSrandomiseFHSSsequenceBuild(seed, FHSSconfig->freq_count, sync_channel, FHSSsequence);
 
     #if defined(RADIO_LR1121)
-        FHSSconfigDualBand = &domainsDualBand[firmwareOptions.secondary_domain];
+        FHSSconfigDualBand = &domainsDualBand[0];
         sync_channel_DualBand = FHSSconfigDualBand->freq_count / 2;
         freq_spread_DualBand = (FHSSconfigDualBand->freq_stop - FHSSconfigDualBand->freq_start) * FREQ_SPREAD_SCALE / (FHSSconfigDualBand->freq_count - 1);
         secondaryBandCount = (FHSS_SEQUENCE_LEN / FHSSconfigDualBand->freq_count) * FHSSconfigDualBand->freq_count;
