@@ -76,9 +76,6 @@ static enum { stbIdle, stbRequested, stbBoosting } syncTelemBoostState = stbIdle
 static uint32_t LastTLMpacketRecv_Ms = 0;
 static uint32_t LinkStatsLastReported_Ms = 0;
 
-// logging variables
-static uint32_t LastHeartbeatLog_Ms = 0;
-
 static bool commitInProgress = false;
 
 LQCALC<100> LqTQly;
@@ -242,11 +239,13 @@ static bool ICACHE_RAM_ATTR ProcessDownlinkPacket(SX12xxDriverCommon::rx_status 
   OTA_Packet_s * const otaPktPtr = (OTA_Packet_s * const)Radio.RXdataBuffer;
   OTA_Packet_s * const otaPktPtrSecond = (OTA_Packet_s * const)Radio.RXdataBufferSecond;
 
-  if (!OtaValidatePacketCrc(otaPktPtr))
-  {
-    DBGLN("TLM crc error");
-    return false;
-  }
+  #if !defined(ALLOW_INVALID_CRC)
+      if (!OtaValidatePacketCrc(otaPktPtr))
+      {
+        DBGLN("TLM crc error");
+        return false;
+      }
+  #endif // !ALLOW_INVALID_CRC
 
   LastTLMpacketRecv_Ms = millis();
   LqTQly.add();
@@ -254,10 +253,12 @@ static bool ICACHE_RAM_ATTR ProcessDownlinkPacket(SX12xxDriverCommon::rx_status 
   Radio.CheckForSecondPacket();
   if (Radio.hasSecondRadioGotData)
   {
-    if (!OtaValidatePacketCrc(otaPktPtrSecond))
-    {
-      Radio.hasSecondRadioGotData = false;
-    }
+    #if !defined(ALLOW_INVALID_CRC)
+        if (!OtaValidatePacketCrc(otaPktPtrSecond))
+        {
+          Radio.hasSecondRadioGotData = false;
+        }
+    #endif // !ALLOW_INVALID_CRC
   }
 
   Radio.GetLastPacketStats();
@@ -515,6 +516,7 @@ void SetRFLinkRate(uint8_t index) // Set speed of RF link
   rfModeLastChangedMS = millis();
 }
 
+
 void ICACHE_RAM_ATTR SendRCdataToRF()
 {
   // Do not send a stale channels packet to the RX if one has not been received from the handset
@@ -640,7 +642,7 @@ void ICACHE_RAM_ATTR SendRCdataToRF()
   if (transmittingRadio == SX12XX_Radio_NONE)
   {
     // No packet will be sent due to LBT.
-    // Defer TXdoneCallback() to prepare for TLM when the IRQ is normally triggered.
+    // Defer TXdoneCallback() to prepare for TLM when the IR Q is normally triggered.
     deferExecutionMicros(ExpressLRS_currAirRate_RFperfParams->TOA, Radio.TXdoneCallback);
   }
   else
@@ -1425,11 +1427,12 @@ void setup()
     Radio.TXdoneCallback = &TXdoneISR;
 
     crsfTransmitter.begin();
-    crsfRouter.addConnector(&otaConnector);
-    crsfRouter.addEndpoint(&crsfTransmitter);
-    crsfRouter.addConnector(&usbConnector);
-    // When a CRSF handset is detected, it will add itself to the router
 
+    crsfRouter.addConnector(&otaConnector);
+    crsfRouter.addConnector(&usbConnector);
+    #if !defined(DETECT)
+    crsfRouter.addEndpoint(&crsfTransmitter);
+    #endif
     handset->registerCallbacks(UARTconnected, firmwareOptions.is_airport ? nullptr : UARTdisconnected);
 
     eeprom.Begin(); // Init the eeprom
@@ -1494,6 +1497,7 @@ void setup()
 // goal is to simply receive packets and log them to the output
 // therefore I do not care about the connection or anything like that
 
+// -DDETECT enables the TX to act as a detector
 
 void loop()
 {
@@ -1522,8 +1526,7 @@ void loop()
 
   HandleUARTin();
 
-  if (connectionState > MODE_STATES)
-  {
+  if (connectionState > MODE_STATES) {
     return;
   }
 
@@ -1563,14 +1566,14 @@ void loop()
   // only send Uplink data when binding is not active
   if (InBindingMode)
   {
-#if defined(RADIO_LR1121)
-    // Send half of the bind packets on the 2.4GHz domain
-    if (BindingSendCount == BindingSpamAmount / 2) {
-      SetRFLinkRate(enumRatetoIndex(RATE_DUALBAND_BINDING));
-      // Increment BindingSendCount so that SetRFLinkRate is only called once.
-      BindingSendCount++;
-    }
-#endif
+    #if defined(RADIO_LR1121)
+        // Send half of the bind packets on the 2.4GHz domain
+        if (BindingSendCount == BindingSpamAmount / 2) {
+          SetRFLinkRate(enumRatetoIndex(RATE_DUALBAND_BINDING));
+          // Increment BindingSendCount so that SetRFLinkRate is only called once.
+          BindingSendCount++;
+        }
+    #endif
     // exit bind mode if package after some repeats
     if (BindingSendCount > BindingSpamAmount) {
       ExitBindingMode();

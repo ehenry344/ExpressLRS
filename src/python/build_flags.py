@@ -125,7 +125,7 @@ def string_to_ascii(str):
     return ",".join(["%s" % ord(char) for char in str])
 
 def get_git_sha():
-    return string_to_ascii(env.get('GIT_SHA'))
+    return string_to_ascii(  env.get('GIT_SHA'))
 
 def get_version():
     return string_to_ascii(env.get('GIT_VERSION'))
